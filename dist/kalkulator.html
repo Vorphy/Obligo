@@ -1,0 +1,1098 @@
+<title>Kalkulator obligacji skarbowych</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f0f2f5; --border: #e1e5ea;
+  --text: #16202c; --muted: #5b6776; --accent: #b4232c; --accent-soft: #fbeaeb;
+  --good: #1f7a4d; --good-soft: #e5f4ec; --warn: #9a5b00; --warn-soft: #fdf3e2;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+  --radius: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1419; --surface: #171d24; --surface-2: #1f2730; --border: #2c3640;
+    --text: #e6eaef; --muted: #98a3b0; --accent: #ef6b72; --accent-soft: #3a1d20;
+    --good: #5fcf94; --good-soft: #15301f; --warn: #f0b252; --warn-soft: #33270f;
+    --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1419; --surface: #171d24; --surface-2: #1f2730; --border: #2c3640;
+  --text: #e6eaef; --muted: #98a3b0; --accent: #ef6b72; --accent-soft: #3a1d20;
+  --good: #5fcf94; --good-soft: #15301f; --warn: #f0b252; --warn-soft: #33270f;
+  --shadow: none;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 24px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
+h1 { font-size: 26px; margin: 0; letter-spacing: -.01em; }
+h1 small { display: block; font-size: 14px; font-weight: 400; color: var(--muted); margin-top: 4px; }
+h2 { font-size: 16px; margin: 0 0 12px; }
+.status { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); display: inline-block; }
+.dot.stale { background: var(--warn); }
+.grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+.grid > *, .row > *, .kpi { min-width: 0; }
+@media (max-width: 920px) { .grid { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { h1 { font-size: 22px; } .reco .big { font-size: 22px; } .kpis { grid-template-columns: 1fr 1fr; } .card { padding: 14px; } .tablewrap { margin: 0 -14px; padding: 0 14px; } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+.stack > * + * { margin-top: 20px; }
+.side { position: sticky; top: 16px; }
+@media (max-width: 920px) { .side { position: static; } }
+label.f { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+label.f:first-of-type { margin-top: 0; }
+.hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+input[type=number], input[type=month], select {
+  width: 100%; padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface); color: var(--text); font: inherit;
+}
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.amount { font-size: 22px !important; font-weight: 600; }
+.row { display: flex; gap: 10px; align-items: center; }
+.row > * { flex: 1; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.rangeval { flex: 0 0 76px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.chip { border: 1px solid var(--border); background: var(--surface-2); color: var(--text); border-radius: 999px; padding: 3px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+.chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.check { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; font-size: 14px; cursor: pointer; }
+.check input { margin-top: 3px; accent-color: var(--accent); }
+.check span small { display: block; color: var(--muted); font-size: 12px; }
+fieldset { border: 0; padding: 0; margin: 0; }
+.child { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.childbox { background: var(--surface-2); border-radius: 10px; padding: 12px; margin-top: 12px; font-size: 13px; }
+.childbox b { font-size: 18px; }
+.btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 7px 12px; border-radius: 8px; font: inherit; font-size: 13px; cursor: pointer; }
+.btn:hover { background: var(--surface-2); }
+.btn.link { border: 0; padding: 0; background: none; color: var(--accent); text-decoration: underline; font-size: 12px; }
+.reco { border-left: 4px solid var(--good); }
+.reco .big { font-size: 28px; font-weight: 700; letter-spacing: -.01em; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 14px 0; }
+.kpi { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
+.kpi span { display: block; font-size: 12px; color: var(--muted); }
+.kpi b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.notes { margin: 10px 0 0; padding-left: 18px; font-size: 13px; color: var(--muted); }
+.notes li + li { margin-top: 4px; }
+.tablewrap { overflow-x: auto; margin: 0 -18px; padding: 0 18px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { padding: 9px 8px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { font-size: 12px; font-weight: 600; color: var(--muted); }
+th:first-child, td:first-child { text-align: left; }
+tbody tr.sel { cursor: pointer; }
+tbody tr.sel:hover { background: var(--surface-2); }
+tbody tr.active { background: var(--accent-soft); }
+tbody tr.dim td { color: var(--muted); }
+.code { font-weight: 700; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: 0; }
+.tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; margin-left: 6px; font-weight: 600; vertical-align: 1px; }
+.tag.best { background: var(--good-soft); color: var(--good); }
+.tag.fam { background: var(--warn-soft); color: var(--warn); }
+.tag.early { background: var(--surface-2); color: var(--muted); }
+.pos { color: var(--good); }
+.neg { color: var(--accent); }
+.chartbox { position: relative; height: 340px; }
+.barbox { position: relative; height: 300px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.segbtn { border: 0; background: var(--surface); color: var(--muted); padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.segbtn + .segbtn { border-left: 1px solid var(--border); }
+.segbtn.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.banner { padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; background: var(--warn-soft); color: var(--warn); display: none; }
+.banner.show { display: block; }
+.params { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px 16px; font-size: 13px; margin-bottom: 14px; }
+.params div span { color: var(--muted); display: block; font-size: 12px; }
+.detailhead { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline; }
+select.inline { width: auto; }
+footer { margin-top: 28px; font-size: 12px; color: var(--muted); }
+a { color: var(--accent); }
+code { background: var(--surface-2); padding: 1px 6px; border-radius: 5px; font-size: 12px; }
+.toast { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: calc(100% - 32px); }
+.toast.show { opacity: 1; }
+</style>
+<div class="wrap">
+  <header>
+    <h1>Kalkulator obligacji skarbowych
+      <small>Porównanie wszystkich obligacji detalicznych na Twoim horyzoncie, po podatku i opłatach</small>
+    </h1>
+    <div class="status">
+      <span class="dot" id="dataDot"></span>
+      <span id="dataInfo">Ładowanie danych…</span>
+      <button class="btn" id="refreshBtn" type="button">Odśwież dane</button>
+    </div>
+  </header>
+
+  <div class="banner" id="staleBanner"></div>
+
+  <div class="grid">
+    <aside class="card side">
+      <fieldset>
+        <label class="f" for="amount">Kwota oszczędności (zł)</label>
+        <input id="amount" class="amount" type="number" min="100" step="100" value="10000" inputmode="numeric">
+        <div class="hint" id="amountHint"></div>
+
+        <label class="f" for="horizon">Horyzont inwestycji</label>
+        <div class="row">
+          <input id="horizonRange" type="range" min="0.25" max="20" step="0.25" value="5" aria-label="Horyzont w latach">
+          <input id="horizon" class="rangeval" type="number" min="0.25" max="20" step="0.25" value="5">
+        </div>
+        <div class="hint">lata — na tyle odkładasz pieniądze</div>
+        <div class="chips" id="horizonChips"></div>
+
+        <label class="f" for="infl">Założona średnia inflacja (% r/r)</label>
+        <div class="row">
+          <input id="inflRange" type="range" min="0" max="12" step="0.1" value="3.5" aria-label="Inflacja">
+          <input id="infl" class="rangeval" type="number" min="0" max="30" step="0.1" value="3.5">
+        </div>
+        <div class="chips" id="inflChips"></div>
+        <div class="hint">Dotyczy COI, ROS, EDO, ROD od 2. roku. Nikt nie zna przyszłej inflacji — sprawdź kilka scenariuszy.</div>
+
+        <label class="f" for="ref">Stopa referencyjna NBP (%)</label>
+        <input id="ref" type="number" min="0" max="25" step="0.25" value="4">
+        <div class="hint">Dotyczy ROR i DOR od 2. miesiąca. Domyślnie obecna (z oferty ROR).</div>
+
+        <label class="check"><input type="checkbox" id="ike"><span>Kupuję w ramach IKE / IKZE<small>bez podatku Belki (przy wypłacie po 60. r.ż.)</small></span></label>
+        <label class="check"><input type="checkbox" id="reinvest" checked><span>Reinwestuj wypłacane odsetki<small>ROR, DOR, COI — dokupuj obligacje z kuponów</small></span></label>
+        <label class="check"><input type="checkbox" id="swap"><span>Kupuję przez zamianę starszych obligacji<small>niższa cena (np. 99,90 zł); nie dotyczy ROS/ROD</small></span></label>
+
+        <div class="child">
+          <label class="check" style="margin-top:0"><input type="checkbox" id="childOn"><span><b>Pobieram 800+ na dziecko</b><small>odblokowuje obligacje rodzinne ROS i ROD</small></span></label>
+          <div id="childFields" hidden>
+            <label class="f" for="birth">Miesiąc urodzenia dziecka</label>
+            <input id="birth" type="month" min="2000-01">
+            <label class="f" for="from">Świadczenie pobierane od (opcjonalnie)</label>
+            <input id="from" type="month" min="2016-04">
+            <div class="hint">Domyślnie od urodzenia lub od 04.2016. Pierwsze dziecko bez kryterium dochodowego: <button class="btn link" id="from2019" type="button">od 07.2019</button></div>
+            <label class="f" for="used">Kwota już wykorzystana na ROS/ROD (zł)</label>
+            <input id="used" type="number" min="0" step="100" value="0">
+            <div class="childbox" id="childBox"></div>
+          </div>
+        </div>
+      </fieldset>
+    </aside>
+
+    <main class="stack">
+      <section class="card reco" id="recoCard" aria-live="polite"></section>
+
+      <section class="card">
+        <h2>Porównanie obligacji na horyzoncie <span id="hLabel"></span></h2>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Obligacja</th><th>1. rok</th><th>Potem</th><th>Wartość na koniec</th><th>Zysk netto</th><th>Rocznie netto</th><th>Realnie (dziś)</th>
+              </tr>
+            </thead>
+            <tbody id="cmpBody"></tbody>
+          </table>
+        </div>
+        <ul class="notes" id="cmpNotes"></ul>
+      </section>
+
+      <section class="card">
+        <h2>Zysk netto na koniec horyzontu</h2>
+        <div class="barbox" id="barBox"><canvas id="barChart" aria-label="Ranking obligacji według zysku netto"></canvas></div>
+      </section>
+
+      <section class="card">
+        <div class="detailhead">
+          <h2>Zysk w czasie (gdybyś wypłacił w danym momencie)</h2>
+          <div class="seg" role="group" aria-label="Rodzaj zysku">
+            <button type="button" class="segbtn on" data-mode="nominal" id="modeNominal">Zysk netto</button>
+            <button type="button" class="segbtn" data-mode="real" id="modeReal">Ponad inflację</button>
+          </div>
+        </div>
+        <div class="chartbox"><canvas id="chart" aria-label="Wykres zysku w czasie"></canvas></div>
+        <div class="hint" id="chartHint"></div>
+      </section>
+
+      <section class="card">
+        <div class="detailhead">
+          <h2>Szczegóły rok po roku</h2>
+          <select id="detailSel" class="inline" aria-label="Wybierz obligację"></select>
+        </div>
+        <div class="params" id="params"></div>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Moment</th><th>Oprocentowanie w okresie</th><th>Liczba obligacji</th><th>Wypłacone odsetki (narastająco)</th><th>Wartość netto przy wypłacie</th><th>Zysk netto</th></tr></thead>
+            <tbody id="detailBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    Dane: <a id="srcLink" href="https://www.obligacjeskarbowe.pl" target="_blank" rel="noopener">obligacjeskarbowe.pl</a>.
+    <span id="updateInfo">Aktualizacja: uruchom <code>python fetch_bonds.py</code> w folderze kalkulatora, potem „Odśwież dane”.</span>
+    Wyliczenia są symulacją przy stałych założeniach (inflacja, stopa NBP, takie same warunki kolejnych emisji przy zamianie) i nie stanowią rekomendacji inwestycyjnej.
+    Podatek liczony w uproszczeniu (19% od odsetek pomniejszonych o opłatę, zaokrąglenie do grosza na obligację).
+  </footer>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* Dane awaryjne — oferta z 11.2026 (nadpisywane przez data.js z fetch_bonds.py) */
+window.FALLBACK_DATA = {
+  source: "https://www.obligacjeskarbowe.pl", fetchedAt: "2026-11-03T08:37:07+01:00", fallback: true,
+  bonds: {
+    OTS: { code: "OTS", series: "OTS0227", firstRate: 2.00, margin: 0, price: 100, swapPrice: 100, fee: 0, saleFrom: "2026-11-01", saleTo: "2026-11-30", periodFrom: "2026-11-01", url: "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-3-miesieczne-ots/ots0227/" },
+    ROR: { code: "ROR", series: "ROR1127", firstRate: 4.00, margin: 0, price: 100, swapPrice: 99.9, fee: 0.5, saleFrom: "2026-11-01", saleTo: "2026-11-30", periodFrom: "2026-11-01", url: "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-roczne-ror/ror1127/" },
+    DOR: { code: "DOR", series: "DOR1128", firstRate: 4.15, margin: 0.15, price: 100, swapPrice: 99.9, fee: 0.7, saleFrom: "2026-11-01", saleTo: "2026-11-30", periodFrom: "2026-11-01", url: "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-2-letnie-dor/dor1128/" },
+    TOS: { code: "TOS", series: "TOS1129", firstRate: 4.40, margin: 0, price: 100, swapPrice: 99.9, fee: 1.0, saleFrom: "2026-11-01", saleTo: "2026-11-30", periodFrom: "2026-11-01", url: "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-3-letnie-tos/tos1129/" },
+    COI: { code: "COI", series: "COI1130", firstRate: 4.75, margin: 1.5, price: 100, swapPrice: 99.9, fee: 2.0, saleFrom: "2026-11-01", saleTo: "2026-11-30", periodFrom: "2026-11-01", url: "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-4-letnie-coi/coi1130/" },
+    ROS: { code: "ROS", series: "ROS1132", firstRate: 5.00, margin: 2.0, price: 100, swapPrice: null, fee: 2.0, saleFrom: "2026-11-01", saleTo: "2026-11-30", periodFrom: "2026-11-01", url: "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-6-letnie-ros/ros1132/" },
+    EDO: { code: "EDO", series: "EDO1136", firstRate: 5.35, margin: 2.0, price: 100, swapPrice: 99.9, fee: 3.0, saleFrom: "2026-11-01", saleTo: "2026-11-30", periodFrom: "2026-11-01", url: "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1136/" },
+    ROD: { code: "ROD", series: "ROD1138", firstRate: 5.60, margin: 2.5, price: 100, swapPrice: null, fee: 3.0, saleFrom: "2026-11-01", saleTo: "2026-11-30", periodFrom: "2026-11-01", url: "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-12-letnie-rod/rod1138/" }
+  }
+};
+</script>
+<script>
+/* Silnik obliczeń obligacji skarbowych (detalicznych).
+ * Działa w przeglądarce (window.BondEngine) i w Node (module.exports).
+ *
+ * Założenia modelu:
+ *  - zakup w pierwszym dniu okresu odsetkowego bieżącej emisji,
+ *  - 1 obligacja = 100 zł nominału, odsetki liczone na 1 obligację i zaokrąglane do grosza,
+ *  - okresy miesięczne (ROR/DOR): liczba dni / 365; okresy roczne: pełna stopa roczna,
+ *  - inflacja i stopa referencyjna NBP są stałe przez cały horyzont (założenie użytkownika),
+ *  - podatek Belki 19% od odsetek (pomniejszonych o opłatę), 0% w IKE/IKZE,
+ *  - przy horyzoncie dłuższym niż okres obligacji środki z wykupu są zamieniane na nową
+ *    emisję tego samego typu (po cenie zamiany) z takimi samymi parametrami jak obecna oferta,
+ *  - przy horyzoncie krótszym - przedterminowy wykup z opłatą wg zasad z obligacjeskarbowe.pl.
+ */
+(function (root) {
+  'use strict';
+
+  const TYPES = {
+    OTS: { name: '3-miesięczne', term: 3,   period: 3,  kind: 'fixed', mode: 'end',        family: false },
+    ROR: { name: 'roczne',       term: 12,  period: 1,  kind: 'ref',   mode: 'payout',     family: false },
+    DOR: { name: '2-letnie',     term: 24,  period: 1,  kind: 'ref',   mode: 'payout',     family: false },
+    TOS: { name: '3-letnie',     term: 36,  period: 12, kind: 'fixed', mode: 'capitalize', family: false },
+    COI: { name: '4-letnie',     term: 48,  period: 12, kind: 'infl',  mode: 'payout',     family: false },
+    ROS: { name: '6-letnie rodzinne',  term: 72,  period: 12, kind: 'infl', mode: 'capitalize', family: true },
+    EDO: { name: '10-letnie',    term: 120, period: 12, kind: 'infl',  mode: 'capitalize', family: false },
+    ROD: { name: '12-letnie rodzinne', term: 144, period: 12, kind: 'infl', mode: 'capitalize', family: true },
+  };
+  const ORDER = ['OTS', 'ROR', 'DOR', 'TOS', 'COI', 'ROS', 'EDO', 'ROD'];
+  const BELKA = 0.19;
+
+  const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100;
+  const trunc2 = (x) => Math.floor(x * 100 + 1e-9) / 100;
+  const DAY = 86400000;
+
+  function parseDate(s) {
+    if (s) {
+      const [y, m, d] = s.split('-').map(Number);
+      return Date.UTC(y, m - 1, d);
+    }
+    const n = new Date();
+    return Date.UTC(n.getFullYear(), n.getMonth(), 1);
+  }
+  function addMonths(t, m) {
+    const d = new Date(t);
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + m, d.getUTCDate());
+  }
+
+  /** Model jednej obligacji (100 zł nominału) danego typu.
+   *  A = { infl: %, ref: %, tax: 0..1 } */
+  function bondModel(bond, A) {
+    const T = TYPES[bond.code];
+    const P = T.period;
+    const nPeriods = T.term / P;
+    const start = parseDate(bond.periodFrom || bond.saleFrom);
+    const dt = (m) => addMonths(start, m);
+    const days = (a, b) => (dt(b) - dt(a)) / DAY;
+    const tax = A.tax;
+    const fee = bond.fee || 0;
+
+    const rates = [];
+    for (let k = 0; k < nPeriods; k++) {
+      let r;
+      if (k === 0 || T.kind === 'fixed') r = bond.firstRate;
+      else if (T.kind === 'ref') r = Math.max(0, A.ref) + bond.margin;
+      else r = Math.max(0, A.infl) + bond.margin; // ujemna inflacja liczona jako 0
+      rates.push(r / 100);
+    }
+
+    // wartość obligacji na początku każdego okresu (dla kapitalizowanych)
+    const V = [100];
+    // odsetki za okres (dla wypłacanych)
+    const coupon = [];
+    for (let k = 0; k < nPeriods; k++) {
+      if (T.mode === 'capitalize') V.push(round2(V[k] * (1 + rates[k])));
+      else if (T.mode === 'end') coupon.push(round2(100 * rates[k] * P / 12));
+      else if (P === 12) coupon.push(round2(100 * rates[k]));
+      else coupon.push(round2(100 * rates[k] * days(k * P, (k + 1) * P) / 365));
+    }
+
+    const taxOf = (x) => round2(Math.max(0, x) * tax);
+
+    return {
+      code: bond.code, T, rates, V, coupon, fee,
+      rateAtAge(age) { return rates[Math.min(nPeriods - 1, Math.floor(age / P))]; },
+
+      /** Wypłata odsetek w miesiącu `age` (tylko obligacje z wypłatą odsetek, przed wykupem). */
+      payoutAt(age) {
+        if (T.mode !== 'payout' || age <= 0 || age % P !== 0) return null;
+        const gross = coupon[age / P - 1];
+        const t = taxOf(gross);
+        return { gross, tax: t, net: gross - t };
+      },
+
+      /** Kwota z wykupu w terminie (bez ostatniego kuponu, który zwraca payoutAt). */
+      maturity() {
+        let interest = 0;
+        if (T.mode === 'capitalize') interest = V[nPeriods] - 100;
+        else if (T.mode === 'end') interest = coupon[0];
+        const t = taxOf(interest);
+        return { gross: 100 + interest, interest, fee: 0, tax: t, net: round2(100 + interest - t) };
+      },
+
+      /** Przedterminowy wykup po `age` miesiącach (0 < age < term). */
+      redeem(age) {
+        if (T.mode === 'end') return { gross: 100, interest: 0, fee: 0, tax: 0, net: 100 };
+        const k = Math.floor(age / P);
+        const into = age - k * P;
+        let acc, feeTaken;
+        if (T.mode === 'capitalize') {
+          const part = into === 0 ? 0 : trunc2(V[k] * rates[k] * days(k * P, age) / days(k * P, (k + 1) * P));
+          acc = round2(V[k] - 100 + part);
+          feeTaken = Math.min(fee, acc); // opłata tylko z narosłych odsetek
+        } else {
+          if (into === 0) acc = 0;
+          else if (P === 12) acc = trunc2(100 * rates[k] * days(k * P, age) / days(k * P, (k + 1) * P));
+          else acc = trunc2(100 * rates[k] * days(k * P, age) / 365);
+          // 1. okres: opłata do wysokości odsetek; kolejne: w pełnej wysokości (także z kapitału)
+          feeTaken = k === 0 ? Math.min(fee, acc) : fee;
+        }
+        const t = taxOf(acc - feeTaken);
+        return { gross: 100 + acc, interest: acc, fee: feeTaken, tax: t, net: round2(100 + acc - feeTaken - t) };
+      },
+    };
+  }
+
+  /** Symulacja portfela jednego typu obligacji na horyzoncie H miesięcy.
+   *  opts = { amount, H, infl, ref, ike, reinvest, swap } */
+  function simulate(bond, opts) {
+    const T = TYPES[bond.code];
+    const A = { infl: opts.infl, ref: opts.ref, tax: opts.ike ? 0 : BELKA };
+    const M = bondModel(bond, A);
+    const price = bond.price || 100;
+    const swapPrice = bond.swapPrice || price;
+    const firstPrice = opts.swap && bond.swapPrice ? bond.swapPrice : price;
+
+    let cash = opts.amount;
+    const n0 = Math.floor(cash / firstPrice + 1e-9);
+    cash = round2(cash - n0 * firstPrice);
+    const lots = n0 > 0 ? [{ start: 0, n: n0 }] : [];
+    const tot = { interestGross: 0, tax: 0, fee: 0, payouts: 0, rollovers: 0, bought: n0 };
+    const timeline = [];
+
+    const liquidation = (t) => {
+      let v = cash;
+      for (const l of lots) v += l.n * M.redeem(t - l.start).net;
+      return round2(v);
+    };
+    timeline.push({ t: 0, value: opts.amount, bonds: n0, rate: M.rates[0], payouts: 0 });
+
+    for (let t = 1; t <= opts.H; t++) {
+      let incomeCash = 0;
+      for (let i = lots.length - 1; i >= 0; i--) {
+        const l = lots[i];
+        const age = t - l.start;
+        const p = M.payoutAt(age);
+        if (p) {
+          incomeCash += l.n * p.net;
+          tot.interestGross += l.n * p.gross; tot.tax += l.n * p.tax; tot.payouts += l.n * p.net;
+        }
+        if (age === T.term) {
+          const m = M.maturity();
+          tot.interestGross += l.n * m.interest; tot.tax += l.n * m.tax;
+          let proceeds = l.n * m.net;
+          lots.splice(i, 1);
+          if (t < opts.H) { // zamiana na nową emisję
+            const k = Math.floor(proceeds / swapPrice + 1e-9);
+            if (k > 0) { lots.push({ start: t, n: k }); tot.rollovers += 1; tot.bought += k; }
+            proceeds -= k * swapPrice;
+          }
+          cash += proceeds;
+        }
+      }
+      cash = round2(cash + incomeCash);
+      if (opts.reinvest && t < opts.H && T.mode === 'payout' && cash >= price) {
+        const k = Math.floor(cash / price + 1e-9);
+        lots.push({ start: t, n: k }); tot.bought += k;
+        cash = round2(cash - k * price);
+      }
+      if (t < opts.H) {
+        const nb = lots.reduce((s, l) => s + l.n, 0);
+        const age = lots.length ? t - lots[0].start : 0;
+        timeline.push({ t, value: liquidation(t), bonds: nb, rate: lots.length ? M.rateAtAge(Math.max(0, age - 1)) : null, payouts: round2(tot.payouts) });
+      }
+    }
+
+    // koniec horyzontu: przedterminowy wykup tego, co jeszcze nie zapadło
+    // "wcześniejszy wykup" = horyzont nie jest wielokrotnością okresu obligacji
+    // (małe partie dokupione z kuponów też są wykupywane, ale nie zmieniają tej oceny)
+    const early = opts.H % T.term !== 0;
+    for (const l of lots) {
+      const r = M.redeem(opts.H - l.start);
+      tot.interestGross += l.n * r.interest; tot.tax += l.n * r.tax; tot.fee += l.n * r.fee;
+      cash += l.n * r.net;
+    }
+    const final = round2(cash);
+    timeline.push({ t: opts.H, value: final, bonds: 0, rate: null, payouts: round2(tot.payouts) });
+
+    const years = opts.H / 12;
+    const profit = round2(final - opts.amount);
+    const cagr = opts.amount > 0 ? Math.pow(final / opts.amount, 1 / years) - 1 : 0;
+    const realFinal = final / Math.pow(1 + opts.infl / 100, years);
+    return {
+      code: bond.code, series: bond.series, model: M, final, profit, cagr,
+      realFinal: round2(realFinal), realProfit: round2(realFinal - opts.amount),
+      early, invested: opts.amount, bonds0: n0, leftover: round2(opts.amount - n0 * firstPrice),
+      totals: {
+        interestGross: round2(tot.interestGross), tax: round2(tot.tax), fee: round2(tot.fee),
+        payouts: round2(tot.payouts), rollovers: tot.rollovers, bought: tot.bought,
+      },
+      timeline,
+    };
+  }
+
+  /* ---------- Limit dla obligacji rodzinnych (800+) ---------- */
+  const BENEFIT = [
+    { from: [2016, 4], amount: 500 }, // program 500+ od 1.04.2016
+    { from: [2024, 1], amount: 800 }, // 800+ od 1.01.2024
+  ];
+  const ym = (y, m) => y * 12 + (m - 1);
+
+  /** birth, from: 'YYYY-MM'; now: Date. Zwraca sumę świadczeń należnych do bieżącego miesiąca. */
+  function childLimit({ birth, from, used, now }) {
+    if (!birth) return null;
+    const [by, bm] = birth.split('-').map(Number);
+    const nowYm = ym(now.getFullYear(), now.getMonth() + 1);
+    const birthYm = ym(by, bm);
+    const programStart = ym(2016, 4);
+    let startYm = Math.max(birthYm, programStart);
+    if (from) {
+      const [fy, fm] = from.split('-').map(Number);
+      startYm = Math.max(startYm, ym(fy, fm));
+    }
+    const endYm = Math.min(nowYm, birthYm + 18 * 12 - 1); // do miesiąca przed 18. urodzinami
+    let sum = 0, months = 0;
+    for (let x = startYm; x <= endYm; x++) {
+      let amt = 0;
+      for (const b of BENEFIT) if (x >= ym(b.from[0], b.from[1])) amt = b.amount;
+      sum += amt; months += amt > 0 ? 1 : 0;
+    }
+    const ageMonths = nowYm - birthYm;
+    const limit = Math.max(0, sum - (used || 0));
+    return {
+      sum, months, used: used || 0, limit, maxBonds: Math.floor(limit / 100),
+      ageMonths, startYm, endYm,
+      ageAt: (plusMonths) => (ageMonths + plusMonths) / 12,
+    };
+  }
+
+  const api = { TYPES, ORDER, BELKA, bondModel, simulate, childLimit, round2 };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.BondEngine = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script id="dataScript">
+window.PUBLISHED = true;
+// Wygenerowane przez fetch_bonds.py - nie edytuj ręcznie
+window.BOND_DATA = {
+  "source": "https://www.obligacjeskarbowe.pl",
+  "fetchedAt": "2026-11-03T08:43:52+01:00",
+  "bonds": {
+    "OTS": {
+      "code": "OTS",
+      "series": "OTS0227",
+      "url": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-3-miesieczne-ots/ots0227/",
+      "firstRate": 2.0,
+      "margin": 0.0,
+      "price": 100.0,
+      "swapPrice": 100.0,
+      "fee": 0.0,
+      "feeFromSite": true,
+      "saleFrom": "2026-11-01",
+      "saleTo": "2026-11-30",
+      "periodFrom": "2026-11-01"
+    },
+    "ROR": {
+      "code": "ROR",
+      "series": "ROR1127",
+      "url": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-roczne-ror/ror1127/",
+      "firstRate": 4.0,
+      "margin": 0.0,
+      "price": 100.0,
+      "swapPrice": 99.9,
+      "fee": 0.5,
+      "feeFromSite": true,
+      "saleFrom": "2026-11-01",
+      "saleTo": "2026-11-30",
+      "periodFrom": "2026-11-01"
+    },
+    "DOR": {
+      "code": "DOR",
+      "series": "DOR1128",
+      "url": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-2-letnie-dor/dor1128/",
+      "firstRate": 4.15,
+      "margin": 0.15,
+      "price": 100.0,
+      "swapPrice": 99.9,
+      "fee": 0.7,
+      "feeFromSite": true,
+      "saleFrom": "2026-11-01",
+      "saleTo": "2026-11-30",
+      "periodFrom": "2026-11-01"
+    },
+    "TOS": {
+      "code": "TOS",
+      "series": "TOS1129",
+      "url": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-3-letnie-tos/tos1129/",
+      "firstRate": 4.4,
+      "margin": 0.0,
+      "price": 100.0,
+      "swapPrice": 99.9,
+      "fee": 1.0,
+      "feeFromSite": true,
+      "saleFrom": "2026-11-01",
+      "saleTo": "2026-11-30",
+      "periodFrom": "2026-11-01"
+    },
+    "COI": {
+      "code": "COI",
+      "series": "COI1130",
+      "url": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-4-letnie-coi/coi1130/",
+      "firstRate": 4.75,
+      "margin": 1.5,
+      "price": 100.0,
+      "swapPrice": 99.9,
+      "fee": 2.0,
+      "feeFromSite": true,
+      "saleFrom": "2026-11-01",
+      "saleTo": "2026-11-30",
+      "periodFrom": "2026-11-01"
+    },
+    "ROS": {
+      "code": "ROS",
+      "series": "ROS1132",
+      "url": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-6-letnie-ros/ros1132/",
+      "firstRate": 5.0,
+      "margin": 2.0,
+      "price": 100.0,
+      "swapPrice": null,
+      "fee": 2.0,
+      "feeFromSite": true,
+      "saleFrom": "2026-11-01",
+      "saleTo": "2026-11-30",
+      "periodFrom": "2026-11-01"
+    },
+    "EDO": {
+      "code": "EDO",
+      "series": "EDO1136",
+      "url": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1136/",
+      "firstRate": 5.35,
+      "margin": 2.0,
+      "price": 100.0,
+      "swapPrice": 99.9,
+      "fee": 3.0,
+      "feeFromSite": true,
+      "saleFrom": "2026-11-01",
+      "saleTo": "2026-11-30",
+      "periodFrom": "2026-11-01"
+    },
+    "ROD": {
+      "code": "ROD",
+      "series": "ROD1138",
+      "url": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-12-letnie-rod/rod1138/",
+      "firstRate": 5.6,
+      "margin": 2.5,
+      "price": 100.0,
+      "swapPrice": null,
+      "fee": 3.0,
+      "feeFromSite": true,
+      "saleFrom": "2026-11-01",
+      "saleTo": "2026-11-30",
+      "periodFrom": "2026-11-01"
+    }
+  },
+  "problems": []
+};
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  const E = window.BondEngine;
+  const $ = (id) => document.getElementById(id);
+  const COLORS = { OTS: '#8a94a6', ROR: '#4c9be8', DOR: '#2f6fb3', TOS: '#8b5cf6', COI: '#e08a1e', ROS: '#d4537e', EDO: '#1f9d63', ROD: '#c0392b' };
+  const zl = new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 });
+  const zl2 = new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const pct = (x, d = 2) => (x * 100).toLocaleString('pl-PL', { minimumFractionDigits: d, maximumFractionDigits: d }) + '%';
+  const pctN = (x, d = 2) => Number(x).toLocaleString('pl-PL', { minimumFractionDigits: d, maximumFractionDigits: d }) + '%';
+  const yearsLabel = (y) => {
+    if (y < 1) return Math.round(y * 12) + ' mies.';
+    const n = Number.isInteger(y) ? y : y.toLocaleString('pl-PL');
+    if (!Number.isInteger(y)) return n + ' roku';
+    return n + (y === 1 ? ' rok' : (y % 10 >= 2 && y % 10 <= 4 && (y % 100 < 10 || y % 100 >= 20)) ? ' lata' : ' lat');
+  };
+
+  let DATA = window.BOND_DATA || window.FALLBACK_DATA;
+  let chart = null;
+  let selected = 'EDO';
+  let selectedByUser = false;
+
+  /* ---------- stan formularza (zapamiętywany lokalnie) ---------- */
+  const FIELDS = ['amount', 'horizon', 'infl', 'ref', 'ike', 'reinvest', 'swap', 'childOn', 'birth', 'from', 'used'];
+  function saveState() {
+    try {
+      const s = {};
+      FIELDS.forEach((f) => { const el = $(f); s[f] = el.type === 'checkbox' ? el.checked : el.value; });
+      s.selected = selected; s.selectedByUser = selectedByUser;
+      localStorage.setItem('obligacje-kalk', JSON.stringify(s));
+    } catch (e) { /* brak dostępu do storage */ }
+  }
+  function loadState() {
+    try {
+      const s = JSON.parse(localStorage.getItem('obligacje-kalk') || 'null');
+      if (!s) return false;
+      FIELDS.forEach((f) => { if (s[f] === undefined) return; const el = $(f); if (el.type === 'checkbox') el.checked = s[f]; else el.value = s[f]; });
+      if (s.selected) selected = s.selected;
+      selectedByUser = !!s.selectedByUser;
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function defaultRef() {
+    const r = DATA.bonds.ROR;
+    return r ? Math.max(0, r.firstRate - (r.margin || 0)) : 4;
+  }
+
+  /* ---------- status danych ---------- */
+  function renderDataStatus() {
+    const d = new Date(DATA.fetchedAt);
+    const when = isNaN(d) ? '?' : d.toLocaleString('pl-PL', { dateStyle: 'medium', timeStyle: 'short' });
+    const anyB = DATA.bonds.EDO || Object.values(DATA.bonds)[0];
+    const saleTo = anyB && anyB.saleTo ? new Date(anyB.saleTo + 'T23:59:59') : null;
+    const stale = saleTo && saleTo < new Date();
+    $('dataInfo').textContent = (DATA.fallback ? 'Dane wbudowane' : 'Dane z obligacjeskarbowe.pl') + ' · pobrane ' + when +
+      (saleTo ? ' · oferta do ' + saleTo.toLocaleDateString('pl-PL') : '');
+    $('dataDot').classList.toggle('stale', !!stale || !!DATA.fallback);
+    const b = $('staleBanner');
+    const msgs = [];
+    if (stale) msgs.push(window.PUBLISHED ? 'Oferta w danych już wygasła — aktualne oprocentowanie sprawdź na obligacjeskarbowe.pl.' : 'Oferta w danych już wygasła — uruchom python fetch_bonds.py i kliknij „Odśwież dane”, aby pobrać bieżące emisje.');
+    if (DATA.problems && DATA.problems.length) msgs.push('Problemy przy ostatnim pobraniu: ' + DATA.problems.join('; '));
+    b.textContent = msgs.join(' ');
+    b.classList.toggle('show', msgs.length > 0);
+  }
+
+  function refreshData() {
+    const old = $('dataScript');
+    const s = document.createElement('script');
+    s.src = 'data.js?t=' + Date.now();
+    s.id = 'dataScript';
+    const prev = DATA.fetchedAt;
+    s.onload = () => {
+      if (window.BOND_DATA) DATA = window.BOND_DATA;
+      renderDataStatus(); compute();
+      toast(DATA.fetchedAt !== prev ? 'Wczytano nowe dane.' : 'Dane bez zmian. Aby pobrać nowe z obligacjeskarbowe.pl, uruchom: python fetch_bonds.py');
+    };
+    s.onerror = () => toast('Brak pliku data.js — uruchom: python fetch_bonds.py (używam danych wbudowanych).');
+    old.replaceWith(s);
+  }
+
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 4500);
+  }
+
+  /* ---------- dziecko / limit 800+ ---------- */
+  function readChild() {
+    if (!$('childOn').checked || !$('birth').value) return null;
+    return E.childLimit({ birth: $('birth').value, from: $('from').value, used: +$('used').value || 0, now: new Date() });
+  }
+  function ymLabel(x) { const y = Math.floor(x / 12), m = x % 12 + 1; return String(m).padStart(2, '0') + '.' + y; }
+
+  function renderChild(C) {
+    const box = $('childBox');
+    if (!C) { box.innerHTML = 'Podaj miesiąc urodzenia dziecka, aby policzyć limit.'; return; }
+    const age = (C.ageMonths / 12);
+    const lines = [];
+    lines.push(`Limit na ROS/ROD: <b>${zl.format(C.limit)}</b> <span class="hint">(${C.maxBonds} obligacji)</span>`);
+    lines.push(`Świadczenia: ${zl.format(C.sum)} za ${C.months} mies. (${ymLabel(C.startYm)}–${ymLabel(C.endYm)})${C.used ? `, minus wykorzystane ${zl.format(C.used)}` : ''}`);
+    lines.push(`Wiek dziecka teraz: <b style="font-size:inherit">${age.toLocaleString('pl-PL', { maximumFractionDigits: 1 })} lat</b>`);
+    const atROS = C.ageAt(72), atROD = C.ageAt(144);
+    lines.push(`Przy wykupie: ROS (6 lat) — ${fmtAge(atROS)}, ROD (12 lat) — ${fmtAge(atROD)}`);
+    if (C.ageMonths >= 216) lines.push('<span class="neg">Dziecko ma już 18 lat — nowe świadczenia nie przysługują, liczy się tylko limit z wcześniej otrzymanych.</span>');
+    if (C.ageMonths < 0) lines.push('<span class="neg">Data urodzenia w przyszłości.</span>');
+    box.innerHTML = lines.join('<br>');
+  }
+  function fmtAge(y) { return y.toLocaleString('pl-PL', { maximumFractionDigits: 1 }) + ' lat' + (y >= 18 ? ' ✓ pełnoletnie' : ''); }
+
+  /* ---------- obliczenia ---------- */
+  function readOpts() {
+    const amount = Math.max(0, +$('amount').value || 0);
+    const years = Math.min(30, Math.max(0.25, +$('horizon').value || 1));
+    return {
+      amount, years, H: Math.round(years * 12),
+      infl: +$('infl').value || 0, ref: $('ref').value === '' ? defaultRef() : +$('ref').value,
+      ike: $('ike').checked, reinvest: $('reinvest').checked, swap: $('swap').checked,
+    };
+  }
+
+  function compute() {
+    const O = readOpts();
+    const C = readChild();
+    renderChild(C);
+    $('childFields').hidden = !$('childOn').checked;
+    const famAllowed = !!(C && C.limit >= 100);
+    const famAmount = famAllowed ? Math.min(O.amount, C.maxBonds * 100) : O.amount;
+
+    const res = {};
+    for (const code of E.ORDER) {
+      const b = DATA.bonds[code];
+      if (!b) continue;
+      const fam = E.TYPES[code].family;
+      const amt = fam && famAllowed ? famAmount : O.amount;
+      const bond = fam ? Object.assign({}, b, { swapPrice: null }) : b;
+      res[code] = E.simulate(bond, Object.assign({}, O, { amount: amt, swap: fam ? false : O.swap }));
+      res[code].eligible = !fam || famAllowed;
+      res[code].limited = fam && famAllowed && amt < O.amount;
+    }
+
+    // rekomendacja
+    const eligible = Object.values(res).filter((r) => r.eligible && r.invested > 0);
+    const nonFam = eligible.filter((r) => !E.TYPES[r.code].family).sort((a, b) => b.cagr - a.cagr);
+    const fam = eligible.filter((r) => E.TYPES[r.code].family).sort((a, b) => b.cagr - a.cagr);
+    let plan = null;
+    if (nonFam.length || fam.length) {
+      const bestN = nonFam[0], bestF = fam[0];
+      if (bestF && (!bestN || bestF.cagr > bestN.cagr)) {
+        const rest = round2(O.amount - bestF.invested);
+        if (rest >= 100 && bestN) {
+          const restRes = E.simulate(DATA.bonds[bestN.code], Object.assign({}, O, { amount: rest }));
+          plan = { parts: [bestF, restRes], final: bestF.final + restRes.final };
+        } else plan = { parts: [bestF], final: bestF.final };
+      } else if (bestN) plan = { parts: [bestN], final: bestN.final };
+    }
+    if (!selectedByUser && plan) selected = plan.parts[0].code;
+
+    renderReco(O, C, res, plan);
+    renderTable(O, res, plan);
+    renderChart(O, res);
+    renderDetail(O, res);
+    saveState();
+  }
+  const round2 = E.round2;
+
+  function bondShort(code) { return `<span class="code">${code}</span> <span class="hint" style="display:inline">${E.TYPES[code].name}</span>`; }
+
+  function renderReco(O, C, res, plan) {
+    const el = $('recoCard');
+    if (!plan || O.amount < 100) {
+      el.innerHTML = '<h2>Wpisz kwotę (min. 100 zł)</h2><div class="hint">Jedna obligacja kosztuje 100 zł.</div>';
+      return;
+    }
+    const final = plan.final;
+    const profit = final - O.amount;
+    const cagr = Math.pow(final / O.amount, 1 / O.years) - 1;
+    const real = final / Math.pow(1 + O.infl / 100, O.years);
+    const head = plan.parts.length === 2
+      ? `${zl.format(plan.parts[0].invested)} w ${plan.parts[0].code} + ${zl.format(plan.parts[1].invested)} w ${plan.parts[1].code}`
+      : `${plan.parts[0].code} (${E.TYPES[plan.parts[0].code].name})`;
+    const notes = [];
+    for (const p of plan.parts) {
+      const T = E.TYPES[p.code];
+      if (p.early) notes.push(`${p.code}: horyzont nie pokrywa się z okresem obligacji (${yearsLabel(T.term / 12)}) — uwzględniono przedterminowy wykup (opłata ${zl2.format(DATA.bonds[p.code].fee)}/szt.).`);
+      if (p.totals.rollovers) notes.push(`${p.code}: po wykupie środki zamieniane na nową emisję ${p.code} na takich samych warunkach jak dziś (założenie).`);
+    }
+    if (plan.parts.length === 2) notes.push(`Obligacje rodzinne są najkorzystniejsze, ale limit 800+ pozwala ulokować w nich ${zl.format(plan.parts[0].invested)}. Reszta trafia do najlepszej obligacji ogólnodostępnej.`);
+    if (!C && O.years >= 6) notes.push('Masz dziecko i pobierasz 800+? Zaznacz to w formularzu — obligacje rodzinne ROS/ROD mają wyższą marżę.');
+    if (O.years < 1) notes.push('Przy tak krótkim horyzoncie liczy się płynność. Rozważ też konto oszczędnościowe lub lokatę.');
+    if (O.infl >= 0 && real < O.amount) notes.push('Przy tym założeniu inflacji realna siła nabywcza spada — oszczędności nie nadążają za cenami.');
+    if (O.ike) notes.push('IKE/IKZE: zwolnienie z podatku wymaga wypłaty po 60. r.ż. (lub 55. przy uprawnieniach emerytalnych) i obowiązują roczne limity wpłat.');
+    el.innerHTML = `
+      <h2>Najlepszy wynik przy Twoich założeniach</h2>
+      <div class="big">${head}</div>
+      <div class="kpis">
+        <div class="kpi"><span>Za ${yearsLabel(O.years)} otrzymasz netto</span><b>${zl.format(final)}</b></div>
+        <div class="kpi"><span>Zysk netto</span><b class="${profit >= 0 ? 'pos' : 'neg'}">${profit >= 0 ? '+' : ''}${zl.format(profit)}</b></div>
+        <div class="kpi"><span>Średnio rocznie netto</span><b>${pct(cagr)}</b></div>
+        <div class="kpi"><span>Realnie, w dzisiejszych złotych</span><b class="${real >= O.amount ? 'pos' : 'neg'}">${zl.format(real)}</b></div>
+      </div>
+      <ul class="notes">${notes.map((n) => `<li>${n}</li>`).join('')}</ul>`;
+  }
+
+  function renderTable(O, res, plan) {
+    $('hLabel').textContent = yearsLabel(O.years);
+    const bestCode = plan ? plan.parts[0].code : null;
+    const rows = E.ORDER.filter((c) => res[c]).map((code) => {
+      const r = res[code], b = DATA.bonds[code], T = E.TYPES[code];
+      let after;
+      if (T.kind === 'fixed') after = 'stałe';
+      else if (T.kind === 'ref') after = `NBP + ${pctN(b.margin)}`;
+      else after = `inflacja + ${pctN(b.margin)}`;
+      const tags = [];
+      if (code === bestCode) tags.push('<span class="tag best">najlepsza</span>');
+      if (T.family) tags.push(`<span class="tag fam">${r.eligible ? (r.limited ? 'limit ' + zl.format(r.invested) : '800+') : 'tylko 800+'}</span>`);
+      if (r.early) tags.push('<span class="tag early" title="przedterminowy wykup na koniec horyzontu">wcz. wykup</span>');
+      return `<tr class="sel ${code === selected ? 'active' : ''} ${r.eligible ? '' : 'dim'}" data-code="${code}" tabindex="0">
+        <td><span class="swatch" style="background:${COLORS[code]}"></span>${bondShort(code)}${tags.join('')}</td>
+        <td>${pctN(b.firstRate)}</td><td>${after}</td>
+        <td>${zl.format(r.final)}</td>
+        <td class="${r.profit >= 0 ? 'pos' : 'neg'}">${r.profit >= 0 ? '+' : ''}${zl.format(r.profit)}</td>
+        <td>${pct(r.cagr)}</td>
+        <td class="${r.realFinal >= r.invested ? 'pos' : 'neg'}">${zl.format(r.realFinal)}</td>
+      </tr>`;
+    });
+    $('cmpBody').innerHTML = rows.join('');
+    const n = [];
+    n.push(`Kwota ${zl.format(O.amount)} = ${Math.floor(O.amount / 100)} obligacji po 100 zł${O.amount % 100 ? ` (reszta ${zl2.format(O.amount % 100)} zostaje)` : ''}. Wyniki po podatku${O.ike ? ' (IKE: bez podatku)' : ' Belki 19%'} i opłatach.`);
+    const early = E.ORDER.filter((c) => res[c] && res[c].early && res[c].totals.fee > 0);
+    if (early.length) {
+      n.push(`<b>Zysk netto uwzględnia już opłatę za zerwanie (przedterminowy wykup)</b> dla obligacji oznaczonych „wcz. wykup”. Podatek liczony jest od odsetek po potrąceniu opłaty. Opłaty łącznie: ${early.map((c) => `${c} −${zl.format(res[c].totals.fee)} (${zl2.format(DATA.bonds[c].fee)}/szt.)`).join(', ')}.`);
+    } else {
+      n.push('Przy tym horyzoncie żadna obligacja nie wymaga zerwania. Gdy horyzont będzie krótszy niż okres obligacji, zysk netto automatycznie uwzględni opłatę za przedterminowy wykup.');
+    }
+    n.push('„Realnie” = wartość końcowa przeliczona na dzisiejsze złote przy założonej inflacji.');
+    if (!Object.values(res).some((r) => E.TYPES[r.code].family && r.eligible)) n.push('ROS i ROD są dostępne tylko dla rodziców pobierających 800+ (do wysokości otrzymanych świadczeń).');
+    $('cmpNotes').innerHTML = n.map((x) => `<li>${x}</li>`).join('');
+    document.querySelectorAll('#cmpBody tr.sel').forEach((tr) => {
+      const pick = () => { selected = tr.dataset.code; selectedByUser = true; compute(); };
+      tr.addEventListener('click', pick);
+      tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+    });
+  }
+
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+  let chartMode = 'nominal';
+  let barChart = null;
+  const fade = (hex, a) => hex + Math.round(a * 255).toString(16).padStart(2, '0');
+  const signed = (v) => (v >= 0 ? '+' : '−') + zl.format(Math.abs(v));
+  function pickCode(code) { if (!code || !E.TYPES[code]) return; selected = code; selectedByUser = true; compute(); }
+
+  function renderChart(O, res) {
+    if (!window.Chart) { $('chartHint').textContent = 'Wykresy niedostępne (brak połączenia z internetem do załadowania biblioteki Chart.js).'; return; }
+    renderBars(O, res);
+    const real = chartMode === 'real';
+    const step = O.H > 60 ? 3 : 1;
+    const deflate = (t) => real ? Math.pow(1 + O.infl / 100, t / 12) : 1;
+    const codes = E.ORDER.filter((c) => res[c]);
+    const datasets = codes.map((code) => {
+      const r = res[code];
+      const sel = code === selected;
+      const pts = r.timeline.filter((p, i, a) => p.t % step === 0 || i === a.length - 1)
+        .map((p) => ({ x: p.t / 12, y: Math.round(p.value / deflate(p.t) - r.invested) }));
+      return {
+        label: code, data: pts, code,
+        borderColor: sel ? COLORS[code] : fade(COLORS[code], 0.38),
+        backgroundColor: COLORS[code],
+        borderWidth: sel ? 3.5 : 1.5, pointRadius: 0, pointHoverRadius: 4, tension: 0,
+        borderDash: r.eligible ? [] : [4, 4], order: sel ? 0 : 1,
+      };
+    });
+    const ref = [];
+    for (let t = 0; t <= O.H; t += step) ref.push({ x: t / 12, y: real ? 0 : Math.round(O.amount * (Math.pow(1 + O.infl / 100, t / 12) - 1)) });
+    if (O.H % step) ref.push({ x: O.years, y: real ? 0 : Math.round(O.amount * (Math.pow(1 + O.infl / 100, O.years) - 1)) });
+    datasets.push({
+      label: real ? 'Zero = siła nabywcza wpłaty' : 'Inflacja (tyle trzeba zarobić)', data: ref,
+      borderColor: cssVar('--muted'), borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, order: 2,
+    });
+
+    const grid = cssVar('--border'), text = cssVar('--muted');
+    const cfg = {
+      type: 'line', data: { datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false, parsing: false,
+        interaction: { mode: 'index', intersect: false },
+        onClick: (evt, els, ch) => {
+          const hit = ch.getElementsAtEventForMode(evt, 'nearest', { intersect: false, axis: 'xy' }, true)[0];
+          if (hit) pickCode(ch.data.datasets[hit.datasetIndex].code);
+        },
+        scales: {
+          x: { type: 'linear', min: 0, max: O.years, title: { display: true, text: 'lata', color: text }, ticks: { color: text }, grid: { color: grid } },
+          y: { ticks: { color: text, callback: (v) => signed(v) }, grid: { color: (c) => c.tick && c.tick.value === 0 ? text : grid } },
+        },
+        plugins: {
+          legend: { labels: { color: text, boxWidth: 12 } },
+          tooltip: {
+            itemSort: (a, b) => b.parsed.y - a.parsed.y,
+            callbacks: {
+              title: (it) => it.length ? 'Po ' + (Math.round(it[0].parsed.x * 12)) + ' mies. (' + it[0].parsed.x.toLocaleString('pl-PL', { maximumFractionDigits: 2 }) + ' r.)' : '',
+              label: (it) => ` ${it.dataset.label}: ${signed(it.parsed.y)}`,
+            },
+          },
+        },
+      },
+    };
+    if (chart) { chart.data = cfg.data; chart.options = cfg.options; chart.update(); }
+    else chart = new Chart($('chart'), cfg);
+    $('chartHint').textContent = (real
+      ? 'Zysk realny: wartość przeliczona na dzisiejsze złote. Poniżej zera oszczędności tracą siłę nabywczą.'
+      : 'Linia przerywana szara: o ile musiałyby urosnąć oszczędności, żeby nadążyć za inflacją.') +
+      ' Wyraźna linia to wybrana obligacja; kliknij linię, słupek lub wiersz tabeli, aby wybrać inną. Załamania wykresu to opłaty za wcześniejszy wykup i momenty kapitalizacji odsetek.';
+  }
+
+  function renderBars(O, res) {
+    const real = chartMode === 'real';
+    const rows = E.ORDER.filter((c) => res[c]).map((c) => ({ c, r: res[c], v: real ? res[c].realProfit : res[c].profit }))
+      .sort((a, b) => b.v - a.v);
+    const text = cssVar('--muted'), grid = cssVar('--border'), fg = cssVar('--text');
+    const labels = rows.map(({ c, r, v }) => `${c}  ${signed(v)}${r.eligible ? '' : '  (800+)'}`);
+    const cfg = {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data: rows.map((x) => x.v),
+          backgroundColor: rows.map(({ c, r }) => r.eligible ? (c === selected ? COLORS[c] : fade(COLORS[c], 0.75)) : fade(COLORS[c], 0.3)),
+          borderColor: rows.map(({ c }) => c === selected ? fg : 'transparent'),
+          borderWidth: rows.map(({ c }) => c === selected ? 2 : 0),
+          borderRadius: 4, barPercentage: 0.75, categoryPercentage: 0.9, codes: rows.map((x) => x.c),
+        }],
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: false,
+        onClick: (evt, els, ch) => { if (els[0]) pickCode(ch.data.datasets[0].codes[els[0].index]); },
+        scales: {
+          x: { ticks: { color: text, callback: (v) => signed(v) }, grid: { color: (c) => c.tick && c.tick.value === 0 ? text : grid } },
+          y: { ticks: { color: fg, font: { weight: '600' } }, grid: { display: false } },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: {
+            title: (it) => { const c = it[0].dataset.codes[it[0].dataIndex]; return `${c} — ${E.TYPES[c].name}`; },
+            label: (it) => {
+              const r = res[it.dataset.codes[it.dataIndex]];
+              return [` ${real ? 'Zysk realny' : 'Zysk netto'}: ${signed(it.parsed.x)}`, ` Na koniec: ${zl.format(r.final)} (z ${zl.format(r.invested)})`, ` Rocznie netto: ${pct(r.cagr)}`];
+            },
+          } },
+        },
+      },
+    };
+    if (barChart) { barChart.data = cfg.data; barChart.options = cfg.options; barChart.update(); }
+    else barChart = new Chart($('barChart'), cfg);
+    $('barBox').parentElement.querySelector('h2').textContent = (real ? 'Zysk realny (ponad inflację)' : 'Zysk netto') + ' na koniec horyzontu: ' + yearsLabel(O.years);
+  }
+
+  function renderDetail(O, res) {
+    const sel = $('detailSel');
+    if (!sel.options.length) {
+      E.ORDER.forEach((c) => { const o = document.createElement('option'); o.value = c; o.textContent = `${c} — ${E.TYPES[c].name}`; sel.appendChild(o); });
+    }
+    if (!res[selected]) selected = Object.keys(res)[0];
+    sel.value = selected;
+    const r = res[selected], b = DATA.bonds[selected], T = E.TYPES[selected];
+    const modeTxt = { capitalize: 'roczna kapitalizacja, wypłata przy wykupie', payout: T.period === 1 ? 'wypłata co miesiąc' : 'wypłata co roku', end: 'wypłata przy wykupie' }[T.mode];
+    const after = T.kind === 'fixed' ? 'stałe przez cały okres' : T.kind === 'ref' ? `stopa ref. NBP + ${pctN(b.margin)} (od 2. mies.)` : `inflacja + ${pctN(b.margin)} (od 2. roku)`;
+    $('params').innerHTML = `
+      <div><span>Seria</span><a href="${b.url}" target="_blank" rel="noopener">${b.series}</a></div>
+      <div><span>Okres</span>${yearsLabel(T.term / 12)}</div>
+      <div><span>Oprocentowanie 1. okres</span>${pctN(b.firstRate)}</div>
+      <div><span>Kolejne okresy</span>${after}</div>
+      <div><span>Odsetki</span>${modeTxt}</div>
+      <div><span>Opłata za wcześniejszy wykup</span>${selected === 'OTS' ? 'brak (ale bez odsetek)' : zl2.format(b.fee) + ' / szt.'}</div>
+      <div><span>Cena / cena zamiany</span>${zl2.format(b.price)}${b.swapPrice && !T.family ? ' / ' + zl2.format(b.swapPrice) : ''}</div>
+      <div><span>Podatek / opłaty łącznie</span>${zl2.format(r.totals.tax)} / ${zl2.format(r.totals.fee)}</div>`;
+
+    const rows = [];
+    const pts = r.timeline;
+    const marks = [];
+    if (O.H <= 12) { for (let t = O.H <= 3 ? 1 : 3; t < O.H; t += O.H <= 3 ? 1 : 3) marks.push(t); }
+    else for (let t = 12; t < O.H; t += 12) marks.push(t);
+    marks.push(O.H);
+    for (const t of marks) {
+      const p = pts.find((x) => x.t === t);
+      if (!p) continue;
+      const label = t === O.H ? `Koniec (${yearsLabel(t / 12)})` : (O.H <= 12 ? `${t} mies.` : `${t / 12}. rok`);
+      const rate = t === O.H ? '—' : (p.rate != null ? pct(p.rate) : '—');
+      const profit = p.value - r.invested;
+      rows.push(`<tr><td>${label}</td><td>${rate}</td><td>${t === O.H ? '—' : p.bonds}</td><td>${zl2.format(p.payouts)}</td><td>${zl2.format(p.value)}</td><td class="${profit >= 0 ? 'pos' : 'neg'}">${profit >= 0 ? '+' : ''}${zl2.format(profit)}</td></tr>`);
+    }
+    $('detailBody').innerHTML = rows.join('') || '<tr><td colspan="6">Brak danych</td></tr>';
+  }
+
+  /* ---------- zdarzenia ---------- */
+  function syncPair(a, b) {
+    $(a).addEventListener('input', () => { $(b).value = $(a).value; compute(); });
+    $(b).addEventListener('input', () => { $(a).value = $(b).value; compute(); });
+  }
+  function chips(container, values, target, fmt) {
+    const el = $(container);
+    el.innerHTML = values.map((v) => `<button type="button" class="chip" data-v="${v.v}">${v.label}</button>`).join('');
+    el.addEventListener('click', (e) => {
+      const btn = e.target.closest('.chip'); if (!btn) return;
+      $(target).value = btn.dataset.v; $(target).dispatchEvent(new Event('input'));
+    });
+    const mark = () => el.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', +c.dataset.v === +$(target).value));
+    $(target).addEventListener('input', mark); return mark;
+  }
+
+  /* parametry z adresu, np. index.html#kwota=50000&lata=12&inflacja=4&dziecko=2018-05 */
+  function loadHash() {
+    const map = { kwota: 'amount', lata: 'horizon', inflacja: 'infl', nbp: 'ref', dziecko: 'birth', od: 'from', wykorzystane: 'used', ike: 'ike' };
+    const p = new URLSearchParams(location.hash.slice(1));
+    let any = false;
+    for (const [k, id] of Object.entries(map)) {
+      if (!p.has(k)) continue;
+      any = true;
+      const el = $(id);
+      if (el.type === 'checkbox') el.checked = p.get(k) !== '0'; else el.value = p.get(k);
+    }
+    if (p.has('dziecko')) $('childOn').checked = true;
+    if (p.has('obligacja')) { selected = p.get('obligacja').toUpperCase(); selectedByUser = true; }
+    return any;
+  }
+
+  function init() {
+    const restored = loadState();
+    loadHash();
+    if (!restored || $('ref').value === '') $('ref').value = defaultRef();
+    $('horizonRange').value = $('horizon').value;
+    $('inflRange').value = $('infl').value;
+    syncPair('horizonRange', 'horizon');
+    syncPair('inflRange', 'infl');
+    const m1 = chips('horizonChips', [1, 2, 3, 4, 6, 10, 12].map((v) => ({ v, label: yearsLabel(v) })), 'horizon');
+    const m2 = chips('inflChips', [{ v: 2.5, label: 'niska 2,5%' }, { v: 3.5, label: 'umiarkowana 3,5%' }, { v: 5, label: 'wysoka 5%' }, { v: 8, label: 'bardzo wysoka 8%' }], 'infl');
+    m1(); m2();
+    ['amount', 'ref', 'ike', 'reinvest', 'swap', 'childOn', 'birth', 'from', 'used'].forEach((id) => $(id).addEventListener('input', compute));
+    $('childOn').addEventListener('change', () => {
+      if ($('childOn').checked && !selectedByUser) selected = 'ROD';
+      compute();
+    });
+    $('from2019').addEventListener('click', () => { $('from').value = '2019-07'; compute(); });
+    $('detailSel').addEventListener('change', (e) => { selected = e.target.value; selectedByUser = true; compute(); });
+    $('refreshBtn').addEventListener('click', refreshData);
+    document.querySelectorAll('.segbtn').forEach((b) => b.addEventListener('click', () => {
+      chartMode = b.dataset.mode;
+      document.querySelectorAll('.segbtn').forEach((x) => x.classList.toggle('on', x === b));
+      compute();
+    }));
+    $('amount').addEventListener('input', () => {
+      const a = +$('amount').value || 0;
+      $('amountHint').textContent = a >= 100 ? `${Math.floor(a / 100)} obligacji po 100 zł` : 'minimum 100 zł (1 obligacja)';
+    });
+    $('amount').dispatchEvent(new Event('input'));
+    if (DATA.source) $('srcLink').href = DATA.source;
+    if (window.PUBLISHED) {
+      $('refreshBtn').hidden = true;
+      $('updateInfo').textContent = 'Strona zawiera ofertę z dnia pobrania danych i jest aktualizowana po każdej zmianie oferty (zwykle 1. dnia miesiąca).';
+    }
+    renderDataStatus();
+    compute();
+  }
+  init();
+})();
+</script>
