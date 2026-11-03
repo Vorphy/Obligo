@@ -1,0 +1,59 @@
+name: Aktualizacja oferty obligacji
+
+# Codziennie rano sprawdza ofertę na obligacjeskarbowe.pl.
+# Commituje tylko wtedy, gdy oferta faktycznie się zmieniła (zwykle 1. dnia miesiąca).
+on:
+  schedule:
+    - cron: "0 5 * * *" # 05:00 UTC = 6:00/7:00 w Polsce
+  workflow_dispatch: # ręczne uruchomienie: zakładka Actions -> Run workflow
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/update-data.yml"
+      - "fetch_bonds.py"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Pobierz ofertę z obligacjeskarbowe.pl
+        run: python fetch_bonds.py
+
+      - name: Sprawdź, czy oferta się zmieniła
+        id: diff
+        run: |
+          # ignoruj samą datę pobrania - liczy się zmiana serii, oprocentowania, marż, opłat
+          if git diff --quiet -I 'fetchedAt' -- data.json data.js; then
+            echo "Oferta bez zmian."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git diff --stat -- data.json
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Zbuduj wersję do publikacji
+        if: steps.diff.outputs.changed == 'true'
+        run: python build_artifact.py
+
+      - name: Commit i push
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          SERIES=$(python -c "import json;print(' '.join(b['series'] for b in json.load(open('data.json'))['bonds'].values()))")
+          git add data.json data.js dist/kalkulator.html
+          git commit -m "Aktualizacja oferty obligacji: $SERIES"
+          git push

@@ -20,6 +20,15 @@ https://claude.ai/artifact/PtQbwg9aGuDVmAi2SUMSvK (prywatny artefakt na claude.a
 Opublikowana strona zawiera dane z dnia publikacji. Aktualizacja po zmianie oferty:
 `python fetch_bonds.py`, potem `python build_artifact.py`, potem ponowna publikacja `dist/kalkulator.html` pod tym samym linkiem.
 
+## Automatyczna aktualizacja (GitHub Actions)
+
+Workflow `.github/workflows/update-data.yml` codziennie o 05:00 UTC uruchamia `fetch_bonds.py`.
+Jeśli oferta się zmieniła (nowe serie, oprocentowanie, marże, opłaty), commituje nowe
+`data.json`, `data.js` i `dist/kalkulator.html`. Gdy pobieranie się nie uda, workflow kończy się
+błędem i GitHub wysyła maila. Ręczne uruchomienie: zakładka **Actions**, potem **Aktualizacja oferty obligacji**, potem **Run workflow**.
+
+Po aktualizacji: `git pull`, żeby mieć świeże dane lokalnie.
+
 ## Pliki
 
 | Plik | Rola |
