@@ -648,6 +648,8 @@ window.BOND_DATA = {
   };
 
   let DATA = window.BOND_DATA || window.FALLBACK_DATA;
+  // strona z serwera (np. GitHub Pages) - dane aktualizowane automatycznie, bez skryptów lokalnych
+  const HOSTED = !window.PUBLISHED && /^https?:/.test(location.protocol);
   let chart = null;
   let selected = 'EDO';
   let selectedByUser = false;
@@ -690,7 +692,7 @@ window.BOND_DATA = {
     $('dataDot').classList.toggle('stale', !!stale || !!DATA.fallback);
     const b = $('staleBanner');
     const msgs = [];
-    if (stale) msgs.push(window.PUBLISHED ? 'Oferta w danych już wygasła — aktualne oprocentowanie sprawdź na obligacjeskarbowe.pl.' : 'Oferta w danych już wygasła — uruchom python fetch_bonds.py i kliknij „Odśwież dane”, aby pobrać bieżące emisje.');
+    if (stale) msgs.push(window.PUBLISHED || HOSTED ? 'Oferta w danych już wygasła — aktualne oprocentowanie sprawdź na obligacjeskarbowe.pl.' : 'Oferta w danych już wygasła — uruchom python fetch_bonds.py i kliknij „Odśwież dane”, aby pobrać bieżące emisje.');
     if (DATA.problems && DATA.problems.length) msgs.push('Problemy przy ostatnim pobraniu: ' + DATA.problems.join('; '));
     b.textContent = msgs.join(' ');
     b.classList.toggle('show', msgs.length > 0);
@@ -705,9 +707,9 @@ window.BOND_DATA = {
     s.onload = () => {
       if (window.BOND_DATA) DATA = window.BOND_DATA;
       renderDataStatus(); compute();
-      toast(DATA.fetchedAt !== prev ? 'Wczytano nowe dane.' : 'Dane bez zmian. Aby pobrać nowe z obligacjeskarbowe.pl, uruchom: python fetch_bonds.py');
+      toast(DATA.fetchedAt !== prev ? 'Wczytano nowe dane.' : HOSTED ? 'Masz najnowsze dane. Oferta jest sprawdzana automatycznie codziennie rano.' : 'Dane bez zmian. Aby pobrać nowe z obligacjeskarbowe.pl, uruchom: python fetch_bonds.py');
     };
-    s.onerror = () => toast('Brak pliku data.js — uruchom: python fetch_bonds.py (używam danych wbudowanych).');
+    s.onerror = () => toast(HOSTED ? 'Nie udało się pobrać danych — sprawdź połączenie i spróbuj ponownie.' : 'Brak pliku data.js — uruchom: python fetch_bonds.py (używam danych wbudowanych).');
     old.replaceWith(s);
   }
 
@@ -1086,6 +1088,9 @@ window.BOND_DATA = {
     });
     $('amount').dispatchEvent(new Event('input'));
     if (DATA.source) $('srcLink').href = DATA.source;
+    if (HOSTED) {
+      $('updateInfo').textContent = 'Oferta jest sprawdzana automatycznie codziennie rano i aktualizowana po każdej zmianie (zwykle 1. dnia miesiąca).';
+    }
     if (window.PUBLISHED) {
       $('refreshBtn').hidden = true;
       $('updateInfo').textContent = 'Strona zawiera ofertę z dnia pobrania danych i jest aktualizowana po każdej zmianie oferty (zwykle 1. dnia miesiąca).';

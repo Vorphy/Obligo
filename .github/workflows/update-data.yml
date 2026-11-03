@@ -22,6 +22,8 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
 
@@ -57,3 +59,14 @@ jobs:
           git add data.json data.js dist/kalkulator.html
           git commit -m "Aktualizacja oferty obligacji: $SERIES"
           git push
+
+  # commit zrobiony przez Actions nie uruchamia innych workflowów,
+  # więc publikację strony wywołujemy tu jawnie
+  pages:
+    needs: update
+    if: needs.update.outputs.changed == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml

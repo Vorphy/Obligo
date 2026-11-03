@@ -13,7 +13,11 @@ Bez `data.js` kalkulator działa na danych wbudowanych (oferta z 11.2026).
 Parametry można podać w adresie, np.:
 `index.html#kwota=50000&lata=12&inflacja=4&dziecko=2018-05&obligacja=ROD`
 
-## Wersja opublikowana
+## Strona
+
+**https://vorphy.github.io/Obligo/** (GitHub Pages, aktualizowana automatycznie)
+
+Kopia na claude.ai, aktualizowana ręcznie:
 
 https://claude.ai/artifact/PtQbwg9aGuDVmAi2SUMSvK (prywatny artefakt na claude.ai, udostępniany przez menu Share)
 
@@ -26,6 +30,9 @@ Workflow `.github/workflows/update-data.yml` codziennie o 05:00 UTC uruchamia `f
 Jeśli oferta się zmieniła (nowe serie, oprocentowanie, marże, opłaty), commituje nowe
 `data.json`, `data.js` i `dist/kalkulator.html`. Gdy pobieranie się nie uda, workflow kończy się
 błędem i GitHub wysyła maila. Ręczne uruchomienie: zakładka **Actions**, potem **Aktualizacja oferty obligacji**, potem **Run workflow**.
+
+Po zmianie oferty workflow sam publikuje stronę na GitHub Pages (`.github/workflows/pages.yml`).
+Strona jest też publikowana po każdym pushu na `main`.
 
 Po aktualizacji: `git pull`, żeby mieć świeże dane lokalnie.
 
